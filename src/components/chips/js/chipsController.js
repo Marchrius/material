@@ -360,7 +360,7 @@ MdChipsCtrl.prototype.resetChipBuffer = function() {
 MdChipsCtrl.prototype.hasMaxChipsReached = function() {
   if (angular.isString(this.maxChips)) this.maxChips = parseInt(this.maxChips, 10) || 0;
 
-  return this.maxChips > 0 && this.items.length >= this.maxChips;
+  return this.maxChips > 0 && this.items.length > this.maxChips;
 };
 
 /**
