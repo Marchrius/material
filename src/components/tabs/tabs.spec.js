@@ -233,7 +233,7 @@ describe('<md-tabs>', function () {
     });
 
     it('updates pagination and ink styles when string labels change', function(done) {
-      inject(function($rootScope) {
+      inject(function($rootScope, $timeout) {
         // Setup our initial label
         $rootScope.$apply('label = "Some Label"');
 
@@ -242,21 +242,72 @@ describe('<md-tabs>', function () {
         var tabs = setup(template);
         var ctrl = tabs.controller('mdTabs');
 
-        // Setup spies
-        spyOn(ctrl, 'updatePagination');
-        spyOn(ctrl, 'updateInkBarStyles');
+        // Flush the tabs controller timeout for initialization.
+        $timeout.flush();
 
-        // Change the label
-        $rootScope.$apply('label="Another Label"');
-
-        // Use window.setTimeout to add our expectations to the end of the call stack, after the
+        // After the first timeout the mutation observer should have been fired once, because
+        // the initialization of the dummy tabs, already causes some mutations.
+        // Use setTimeout to add our expectations to the end of the call stack, after the
         // MutationObservers have already fired
-        window.setTimeout(function() {
-          // Fire expectations
-          expect(ctrl.updatePagination.calls.count()).toBe(1);
-          expect(ctrl.updateInkBarStyles.calls.count()).toBe(1);
+        setTimeout(function() {
+          // Setup spies
+          spyOn(ctrl, 'updatePagination');
+          spyOn(ctrl, 'updateInkBarStyles');
 
-          done();
+          // Update the label to trigger a new update of the pagination and InkBar styles.
+          $rootScope.$apply('label = "Another Label"');
+
+          // Use setTimeout to add our expectations to the end of the call stack, after the
+          // MutationObservers have already fired
+          setTimeout(function() {
+            expect(ctrl.updatePagination).toHaveBeenCalledTimes(1);
+            expect(ctrl.updateInkBarStyles).toHaveBeenCalledTimes(1);
+
+            done();
+          });
+        });
+      })
+    });
+
+    it('updates pagination and ink styles when content label changes', function(done) {
+      inject(function($rootScope, $timeout) {
+        // Setup our initial label
+        $rootScope.$apply('label = "Default Label"');
+
+        // Init our variables
+        var template = '' +
+          '<md-tabs>' +
+            '<md-tab>' +
+              '<md-tab-label>{{ label }}</md-tab-label>' +
+            '</md-tab>' +
+          '</md-tabs>';
+
+        var tabs = setup(template);
+        var ctrl = tabs.controller('mdTabs');
+
+        // Flush the tabs controller timeout for initialization.
+        $timeout.flush();
+
+        // After the first timeout the mutation observer should have been fired once, because
+        // the initialization of the dummy tabs, already causes some mutations.
+        // Use setTimeout to add our expectations to the end of the call stack, after the
+        // MutationObservers have already fired
+        setTimeout(function() {
+          // Setup spies
+          spyOn(ctrl, 'updatePagination');
+          spyOn(ctrl, 'updateInkBarStyles');
+
+          // Update the label to trigger a new update of the pagination and InkBar styles.
+          $rootScope.$apply('label = "New Label"');
+
+          // Use setTimeout to add our expectations to the end of the call stack, after the
+          // MutationObservers have already fired
+          setTimeout(function() {
+            expect(ctrl.updatePagination).toHaveBeenCalledTimes(1);
+            expect(ctrl.updateInkBarStyles).toHaveBeenCalledTimes(1);
+
+            done();
+          });
         });
       })
     });
@@ -303,7 +354,6 @@ describe('<md-tabs>', function () {
       expect(tabs.find('md-tabs-canvas').attr('role')).toBe('tablist');
 
       expect(tabItem.attr('id')).toBeTruthy();
-      expect(tabItem.attr('role')).toBe('tab');
       expect(tabItem.attr('aria-controls')).toBe(tabContent.attr('id'));
 
       expect(tabContent.attr('id')).toBeTruthy();
@@ -312,6 +362,24 @@ describe('<md-tabs>', function () {
 
       //Unique ids check
       expect(tabContent.attr('id')).not.toEqual(tabItem.attr('id'));
+    });
+
+    it('should not assign role to dummy tabs', function () {
+      var tabs       = setup('<md-tabs>' +
+                             '<md-tab label="label!">content!</md-tab>' +
+                             '</md-tabs>');
+      var tabItem    = tabs.find('md-dummy-tab');
+
+      expect(tabItem.attr('role')).toBeFalsy();
+    });
+
+    it('should assign role to visible tabs', function () {
+      var tabs       = setup('<md-tabs>' +
+                             '<md-tab label="label!">content!</md-tab>' +
+                             '</md-tabs>');
+      var tabItem    = tabs.find('md-tab-item');
+
+      expect(tabItem.attr('role')).toBe('tab');
     });
   });
 

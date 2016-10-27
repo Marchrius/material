@@ -127,11 +127,29 @@ describe('mdCheckbox', function() {
     expect(checkbox[0]).not.toHaveClass('md-focused');
   });
 
-  it('should set focus state on focus and remove on blur', function() {
+  it('should apply focus effect with keyboard interaction', function() {
     var checkbox = compileAndLink('<md-checkbox ng-model="blue"></md-checkbox>');
+    var body = angular.element(document.body);
 
+    // Fake a keyboard interaction for the $mdInteraction service.
+    body.triggerHandler('keydown');
     checkbox.triggerHandler('focus');
+
     expect(checkbox[0]).toHaveClass('md-focused');
+
+    checkbox.triggerHandler('blur');
+    expect(checkbox[0]).not.toHaveClass('md-focused');
+  });
+
+  it('should not apply focus effect with mouse interaction', function() {
+    var checkbox = compileAndLink('<md-checkbox ng-model="blue"></md-checkbox>');
+    var body = angular.element(document.body);
+
+    // Fake a mouse interaction for the $mdInteraction service.
+    body.triggerHandler('mouse');
+    checkbox.triggerHandler('focus');
+
+    expect(checkbox[0]).not.toHaveClass('md-focused');
 
     checkbox.triggerHandler('blur');
     expect(checkbox[0]).not.toHaveClass('md-focused');
@@ -143,7 +161,7 @@ describe('mdCheckbox', function() {
     document.body.appendChild(checkbox[0]);
 
     var container = checkbox.children().eq(0);
-    expect(container[0]).toHaveClass('_md-container');
+    expect(container[0]).toHaveClass('md-container');
 
     // We simulate IE11's focus bug, which always focuses an unfocusable div
     // https://connect.microsoft.com/IE/feedback/details/1028411/
@@ -246,6 +264,20 @@ describe('mdCheckbox', function() {
       checkbox.triggerHandler('click');
       expect(isChecked(checkbox)).toBe(false);
       expect(checkbox.hasClass('ng-invalid')).toBe(true);
+    });
+
+    it('properly unsets the md-checked CSS if ng-checked is undefined', function() {
+      var checkbox = compileAndLink('<md-checkbox ng-checked="value"></md-checkbox>');
+
+      expect(checkbox.hasClass(CHECKED_CSS)).toBe(false);
+    });
+
+    it('should mark the checkbox as selected on load with ng-checked', function() {
+      pageScope.isChecked = function() { return true; };
+
+      var checkbox = compileAndLink('<md-checkbox ng-model="checked" ng-checked="isChecked()"></md-checkbox>');
+
+      expect(checkbox).toHaveClass(CHECKED_CSS);
     });
 
     describe('with the md-indeterminate attribute', function() {

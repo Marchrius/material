@@ -39,6 +39,9 @@ describe('<md-contact-chips>', function() {
   var attachedElements = [];
   afterEach(function() {
     attachedElements.forEach(function(element) {
+      var scope = element.scope();
+
+      scope && scope.$destroy();
       element.remove();
     });
     attachedElements = [];
@@ -65,7 +68,7 @@ describe('<md-contact-chips>', function() {
 
         var element = buildChips(CONTACT_CHIPS_TEMPLATE);
         var ctrl = element.controller('mdContactChips');
-        var chip = angular.element(element[0].querySelector('._md-chip-content'));
+        var chip = angular.element(element[0].querySelector('.md-chip-content'));
 
         expect(chip.find('img').length).toBe(1);
     });
@@ -77,7 +80,7 @@ describe('<md-contact-chips>', function() {
 
         var element = buildChips(CONTACT_CHIPS_TEMPLATE);
         var ctrl = element.controller('mdContactChips');
-        var chip = angular.element(element[0].querySelector('._md-chip-content'));
+        var chip = angular.element(element[0].querySelector('.md-chip-content'));
 
         expect(chip.find('img').length).toBe(0);
     });

@@ -36,6 +36,7 @@ angular.module('material.components.navBar', ['material.core'])
  *
  * @param {string=} mdSelectedNavItem The name of the current tab; this must
  * match the name attribute of `<md-nav-item>`
+ * @param {boolean=} mdNoInkBar If set to true, the ink bar will be hidden.
  * @param {string=} navBarAriaLabel An aria-label for the nav-bar
  *
  * @usage
@@ -92,7 +93,7 @@ angular.module('material.components.navBar', ['material.core'])
  *                                IMPLEMENTATION                             *
  *****************************************************************************/
 
-function MdNavBar($mdAria) {
+function MdNavBar($mdAria, $mdTheming) {
   return {
     restrict: 'E',
     transclude: true,
@@ -101,12 +102,13 @@ function MdNavBar($mdAria) {
     bindToController: true,
     scope: {
       'mdSelectedNavItem': '=?',
+      'mdNoInkBar': '=?',
       'navBarAriaLabel': '@?',
     },
     template:
       '<div class="md-nav-bar">' +
         '<nav role="navigation">' +
-          '<ul class="_md-nav-bar-list" layout="row" ng-transclude role="listbox"' +
+          '<ul class="_md-nav-bar-list" ng-transclude role="listbox"' +
             'tabindex="0"' +
             'ng-focus="ctrl.onFocus()"' +
             'ng-blur="ctrl.onBlur()"' +
@@ -114,9 +116,10 @@ function MdNavBar($mdAria) {
             'aria-label="{{ctrl.navBarAriaLabel}}">' +
           '</ul>' +
         '</nav>' +
-        '<md-nav-ink-bar></md-nav-ink-bar>' +
+        '<md-nav-ink-bar ng-hide="ctrl.mdNoInkBar"></md-nav-ink-bar>' +
       '</div>',
     link: function(scope, element, attrs, ctrl) {
+      $mdTheming(element);
       if (!ctrl.navBarAriaLabel) {
         $mdAria.expectAsync(element, 'aria-label', angular.noop);
       }
@@ -184,7 +187,7 @@ function MdNavBarController($element, $scope, $timeout, $mdConstant) {
  * @private
  */
 MdNavBarController.prototype._initTabs = function() {
-  this._inkbar = angular.element(this._navBarEl.getElementsByTagName('md-nav-ink-bar')[0]);
+  this._inkbar = angular.element(this._navBarEl.querySelector('md-nav-ink-bar'));
 
   var self = this;
   this._$timeout(function() {
@@ -239,7 +242,7 @@ MdNavBarController.prototype._updateInkBarStyles = function(tab, newIndex, oldIn
 
   this._inkbar.css({display: newIndex < 0 ? 'none' : ''});
 
-  if(tab){
+  if (tab) {
     var tabEl = tab.getButtonEl();
     var left = tabEl.offsetLeft;
 
@@ -256,7 +259,7 @@ MdNavBarController.prototype._getTabs = function() {
   var linkArray = Array.prototype.slice.call(
       this._navBarEl.querySelectorAll('.md-nav-item'));
   return linkArray.map(function(el) {
-    return angular.element(el).controller('mdNavItem')
+    return angular.element(el).controller('mdNavItem');
   });
 };
 
@@ -279,7 +282,7 @@ MdNavBarController.prototype._getTabByName = function(name) {
  */
 MdNavBarController.prototype._getSelectedTab = function() {
   return this._findTab(function(tab) {
-    return tab.isSelected()
+    return tab.isSelected();
   });
 };
 
@@ -289,7 +292,7 @@ MdNavBarController.prototype._getSelectedTab = function() {
  */
 MdNavBarController.prototype.getFocusedTab = function() {
   return this._findTab(function(tab) {
-    return tab.hasFocus()
+    return tab.hasFocus();
   });
 };
 
@@ -387,27 +390,44 @@ function MdNavItem($$rAF) {
     controllerAs: 'ctrl',
     replace: true,
     transclude: true,
-    template:
-      '<li class="md-nav-item" role="option" aria-selected="{{ctrl.isSelected()}}">' +
-        '<md-button ng-if="ctrl.mdNavSref" class="_md-nav-button md-accent"' +
-          'ng-class="ctrl.getNgClassMap()"' +
-          'tabindex="-1"' +
-          'ui-sref="{{ctrl.mdNavSref}}">' +
-          '<span ng-transclude class="_md-nav-button-text"></span>' +
-        '</md-button>' +
-        '<md-button ng-if="ctrl.mdNavHref" class="_md-nav-button md-accent"' +
-          'ng-class="ctrl.getNgClassMap()"' +
-          'tabindex="-1"' +
-          'ng-href="{{ctrl.mdNavHref}}">' +
-          '<span ng-transclude class="_md-nav-button-text"></span>' +
-        '</md-button>' +
-        '<md-button ng-if="ctrl.mdNavClick" class="_md-nav-button md-accent"' +
-          'ng-class="ctrl.getNgClassMap()"' +
-          'tabindex="-1"' +
-          'ng-click="ctrl.mdNavClick()">' +
-          '<span ng-transclude class="_md-nav-button-text"></span>' +
-        '</md-button>' +
-      '</li>',
+    template: function(tElement, tAttrs) {
+      var hasNavClick = tAttrs.mdNavClick;
+      var hasNavHref = tAttrs.mdNavHref;
+      var hasNavSref = tAttrs.mdNavSref;
+      var navigationAttribute;
+      var buttonTemplate;
+
+      // Cannot specify more than one nav attribute
+      if ((hasNavClick ? 1:0) + (hasNavHref ? 1:0) + (hasNavSref ? 1:0) > 1) {
+        throw Error(
+          'Must not specify more than one of the md-nav-click, md-nav-href, ' +
+          'or md-nav-sref attributes per nav-item directive.'
+        );
+      }
+
+      if (hasNavClick) {
+        navigationAttribute = 'ng-click="ctrl.mdNavClick()"';
+      } else if (hasNavHref) {
+        navigationAttribute = 'ng-href="{{ctrl.mdNavHref}}"';
+      } else if (hasNavSref) {
+        navigationAttribute = 'ui-sref="{{ctrl.mdNavSref}}"';
+      }
+
+      if (navigationAttribute) {
+        buttonTemplate = '' +
+          '<md-button class="_md-nav-button md-accent" ' +
+            'ng-class="ctrl.getNgClassMap()" ' +
+            'tabindex="-1" ' +
+            navigationAttribute + '>' +
+            '<span ng-transclude class="_md-nav-button-text"></span>' +
+          '</md-button>';
+      }
+
+      return '' +
+        '<li class="md-nav-item" role="option" aria-selected="{{ctrl.isSelected()}}">' +
+          (buttonTemplate || '') +
+        '</li>';
+    },
     scope: {
       'mdNavClick': '&?',
       'mdNavHref': '@?',
@@ -450,10 +470,13 @@ function MdNavItemController($element) {
   this._$element = $element;
 
   // Data-bound variables
+
   /** @const {?Function} */
   this.mdNavClick;
+
   /** @const {?string} */
   this.mdNavHref;
+
   /** @const {?string} */
   this.name;
 
@@ -463,17 +486,6 @@ function MdNavItemController($element) {
 
   /** @private {boolean} */
   this._focused = false;
-
-  var hasNavClick = !!($element.attr('md-nav-click'));
-  var hasNavHref = !!($element.attr('md-nav-href'));
-  var hasNavSref = !!($element.attr('md-nav-sref'));
-
-  // Cannot specify more than one nav attribute
-  if ((hasNavClick ? 1:0) + (hasNavHref ? 1:0) + (hasNavSref ? 1:0) > 1) {
-    throw Error(
-        'Must specify exactly one of md-nav-click, md-nav-href, ' +
-        'md-nav-sref for nav-item directive');
-  }
 }
 
 /**

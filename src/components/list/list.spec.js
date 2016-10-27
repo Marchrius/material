@@ -64,6 +64,41 @@ describe('mdListItem directive', function() {
     expect($rootScope.modelVal).toBe(false);
   });
 
+  it('should not wrap when proxies are disabled', function() {
+    var listItem = setup(
+      '<md-list-item class="md-no-proxy">' +
+        '<md-switch ng-model="modelVal"></md-switch>' +
+      '</md-list-item>'
+    );
+
+    var switchEl = listItem[0].querySelector('md-switch');
+
+    // If proxies are disabled, the list will not wrap anything.
+    expect(switchEl.parentNode).toBe(listItem[0]);
+
+    listItem.triggerHandler('click');
+    expect($rootScope.modelVal).toBeFalsy();
+
+    switchEl.click();
+    expect($rootScope.modelVal).toBeTruthy();
+
+    expect(listItem).not.toHaveClass('md-clickable')
+  });
+
+  it('should not trigger the proxy element, when clicking on a slider', function() {
+    var listItem = setup(
+      '<md-list-item>' +
+        '<md-slider></md-slider>' +
+        '<md-switch ng-model="modelVal"></md-switch>' +
+      '</md-list-item>');
+
+    var slider = listItem.find('md-slider')[0];
+
+    slider.click();
+
+    expect($rootScope.modelVal).toBeFalsy();
+  });
+
   it('should convert spacebar keypress events as clicks', inject(function($mdConstant) {
     var listItem = setup(
       '<md-list-item>' +
@@ -259,7 +294,7 @@ describe('mdListItem directive', function() {
 
     // The actual click button will be a child of the button.md-no-style wrapper.
     var buttonExecutor = buttonWrap.children()[0];
-    
+
     expect(buttonExecutor.nodeName).toBe('MD-BUTTON');
     expect(buttonExecutor.getAttribute('aria-label')).toBe('Hello');
   });
@@ -282,11 +317,42 @@ describe('mdListItem directive', function() {
     expect(firstChild.children().length).toBe(3);
 
     var secondaryContainer = firstChild.children().eq(2);
-    expect(secondaryContainer).toHaveClass('_md-secondary-container');
+    expect(secondaryContainer).toHaveClass('md-secondary-container');
 
     // The secondary container should contain the md-icon,
     // which has been transformed to an icon button.
     expect(secondaryContainer.children()[0].nodeName).toBe('MD-BUTTON');
+  });
+
+  it('should copy ng-show to the generated button parent of a clickable secondary item', function() {
+    var listItem = setup(
+      '<md-list-item ng-click="sayHello()">' +
+        '<p>Hello World</p>' +
+        '<md-icon class="md-secondary" ng-show="isShown" ng-click="goWild()"></md-icon>' +
+      '</md-list-item>');
+
+    // First child is our button wrap
+    var firstChild = listItem.children().eq(0);
+    expect(firstChild[0].nodeName).toBe('DIV');
+
+    expect(listItem).toHaveClass('_md-button-wrap');
+
+    // It should contain three elements, the button overlay, inner content
+    // and the secondary container.
+    expect(firstChild.children().length).toBe(3);
+
+    var secondaryContainer = firstChild.children().eq(2);
+    expect(secondaryContainer).toHaveClass('md-secondary-container');
+
+    // The secondary container should contain the md-icon,
+    // which has been transformed to an icon button.
+    var iconButton = secondaryContainer.children()[0];
+
+    expect(iconButton.nodeName).toBe('MD-BUTTON');
+    expect(iconButton.hasAttribute('ng-show')).toBe(true);
+
+    // The actual `md-icon` element, should not have the ng-show attribute anymore.
+    expect(iconButton.firstElementChild.hasAttribute('ng-show')).toBe(false);
   });
 
   it('moves multiple md-secondary items outside of the button', function() {
@@ -308,7 +374,7 @@ describe('mdListItem directive', function() {
     expect(firstChild.children().length).toBe(3);
 
     var secondaryContainer = firstChild.children().eq(2);
-    expect(secondaryContainer).toHaveClass('_md-secondary-container');
+    expect(secondaryContainer).toHaveClass('md-secondary-container');
 
     // The secondary container should hold the two secondary items.
     expect(secondaryContainer.children().length).toBe(2);
@@ -317,20 +383,19 @@ describe('mdListItem directive', function() {
     expect(secondaryContainer.children()[1].nodeName).toBe('MD-BUTTON');
   });
 
-  it('should detect non-compiled md-buttons', function() {
+  it('should not detect a normal button as a proxy element', function() {
     var listItem = setup('<md-list-item><md-button ng-click="sayHello()">Hello</md-button></md-list-item>');
-    expect(listItem.hasClass('md-no-proxy')).toBeFalsy();
+    expect(listItem.hasClass('md-no-proxy')).toBeTruthy();
   });
 
-  it('should not detect secondary or excluded md-buttons', function() {
+  it('should not detect a secondary button as a proxy element', function() {
     var listItem = setup(
       '<md-list-item>' +
       '  <div>Content Here</div>' +
       '  <md-button class="md-secondary" ng-click="sayHello()">Hello</md-button>' +
-      '  <md-button class="md-exclude" ng-click="sayHello()">Hello</md-button>' +
       '</md-list-item>'
     );
-    expect(listItem.hasClass('_md-no-proxy')).toBeTruthy();
+    expect(listItem.hasClass('md-no-proxy')).toBeTruthy();
   });
 
   it('should copy md-icon.md-secondary attributes to the button', function() {
@@ -432,7 +497,7 @@ describe('mdListItem directive', function() {
 
       var mdMenuButton = listItem[0].querySelector('md-menu > md-button');
 
-      expect(mdMenuButton.getAttribute('ng-click')).toBe('$mdOpenMenu($event)');
+      expect(mdMenuButton.getAttribute('ng-click')).toBe('$mdMenu.open($event)');
     });
   });
 

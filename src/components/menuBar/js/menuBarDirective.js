@@ -1,7 +1,7 @@
 /**
  * @ngdoc directive
  * @name mdMenuBar
- * @module material.components.menu-bar
+ * @module material.components.menuBar
  * @restrict E
  * @description
  *
@@ -12,7 +12,7 @@
  * <hljs lang="html">
  * <md-menu-bar>
  *   <md-menu>
- *     <button ng-click="$mdOpenMenu()">
+ *     <button ng-click="$mdMenu.open()">
  *       File
  *     </button>
  *     <md-menu-content>
@@ -25,7 +25,7 @@
  *       <md-menu-item>
  *       <md-menu-item>
  *         <md-menu>
- *           <md-button ng-click="$mdOpenMenu()">New</md-button>
+ *           <md-button ng-click="$mdMenu.open()">New</md-button>
  *           <md-menu-content>
  *             <md-menu-item><md-button ng-click="ctrl.sampleAction('New Document', $event)">Document</md-button></md-menu-item>
  *             <md-menu-item><md-button ng-click="ctrl.sampleAction('New Spreadsheet', $event)">Spreadsheet</md-button></md-menu-item>
@@ -52,7 +52,7 @@
  * <hljs lang="html">
  * <md-menu-bar>
  *  <md-menu>
- *    <button ng-click="$mdOpenMenu()">
+ *    <button ng-click="$mdMenu.open()">
  *      Sample Menu
  *    </button>
  *    <md-menu-content>
@@ -74,7 +74,7 @@
  * <hljs lang="html">
  * <md-menu-item>
  *   <md-menu>
- *     <button ng-click="$mdOpenMenu()">New</md-button>
+ *     <button ng-click="$mdMenu.open()">New</md-button>
  *     <md-menu-content>
  *       <md-menu-item><md-button ng-click="ctrl.sampleAction('New Document', $event)">Document</md-button></md-menu-item>
  *       <md-menu-item><md-button ng-click="ctrl.sampleAction('New Spreadsheet', $event)">Spreadsheet</md-button></md-menu-item>
@@ -114,7 +114,7 @@ function MenuBarDirective($mdUtil, $mdTheming) {
           }
           var contentEls = $mdUtil.nodesToArray(menuEl.querySelectorAll('md-menu-content'));
           angular.forEach(contentEls, function(contentEl) {
-            contentEl.classList.add('_md-menu-bar-menu');
+            contentEl.classList.add('md-menu-bar-menu');
             contentEl.classList.add('md-dense');
             if (!contentEl.hasAttribute('width')) {
               contentEl.setAttribute('width', 5);
@@ -122,6 +122,13 @@ function MenuBarDirective($mdUtil, $mdTheming) {
           });
         }
       });
+
+      // Mark the child menu items that they're inside a menu bar. This is necessary,
+      // because mnMenuItem has special behaviour during compilation, depending on
+      // whether it is inside a mdMenuBar. We can usually figure this out via the DOM,
+      // however if a directive that uses documentFragment is applied to the child (e.g. ngRepeat),
+      // the element won't have a parent and won't compile properly.
+      templateEl.find('md-menu-item').addClass('md-in-menu-bar');
 
       return function postLink(scope, el, attr, ctrl) {
         el.addClass('_md');     // private md component indicator for styling
